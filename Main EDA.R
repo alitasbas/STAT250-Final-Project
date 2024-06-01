@@ -85,36 +85,36 @@ genre_region_props
 
 
 # 2- Genre profit over years TMDB
-summary(tmdb[, c("budget", "revenue")])
-nrow(tmdb[tmdb$budget==0, ])
-nrow(tmdb[tmdb$revenue==0, ])
-# As movies can't be produced for free, remove all observations with budget=0.
-# Additionally, some budget entries are in millions. Take budget greater than 10000.
-tmdb %<>% 
-  filter(budget > 10000)
-
-# There are some flops and wrong values for revenues. Get rid of them, too.
-tmdb %<>% 
-  filter(revenue > 10000)
-
-tmdb %<>%
-  mutate(profit = (revenue - budget) / budget * 100)
-
-profit <- tmdb %>% 
-  group_by(genres) %>% 
-  summarize(avg_profit = mean(profit, na.rm =T)) %>% 
-  arrange(desc(avg_profit)) # Take top for and plot on a time series
-# These are the highest profiting genres on average
-top_genre_list <- c("Horror", "Family", "Thriller", "Animation")
-
-# Currently, the genre column is in JSON format. We want to extract the first genre.
-extract_first_name <- function(json_str) {
-  genre_list <- fromJSON(json_str)  # Convert JSON string to list
-  return(genre_list[[1]]$name)  # Extract the name of the first genre
-}
-
-# Apply the function to the column
-tmdb$first_genre_name <- sapply(tmdb$genres, extract_first_name)
+# summary(tmdb[, c("budget", "revenue")])
+# nrow(tmdb[tmdb$budget==0, ])
+# nrow(tmdb[tmdb$revenue==0, ])
+# # As movies can't be produced for free, remove all observations with budget=0.
+# # Additionally, some budget entries are in millions. Take budget greater than 10000.
+# tmdb %<>% 
+#   filter(budget > 10000)
+# 
+# # There are some flops and wrong values for revenues. Get rid of them, too.
+# tmdb %<>% 
+#   filter(revenue > 10000)
+# 
+# tmdb %<>%
+#   mutate(profit = (revenue - budget) / budget * 100)
+# 
+# profit <- tmdb %>% 
+#   group_by(genres) %>% 
+#   summarize(avg_profit = mean(profit, na.rm =T)) %>% 
+#   arrange(desc(avg_profit)) # Take top for and plot on a time series
+# # These are the highest profiting genres on average
+# top_genre_list <- c("Horror", "Family", "Thriller", "Animation")
+# 
+# # Currently, the genre column is in JSON format. We want to extract the first genre.
+# extract_first_name <- function(json_str) {
+#   genre_list <- fromJSON(json_str)  # Convert JSON string to list
+#   return(genre_list[[1]]$name)  # Extract the name of the first genre
+# }
+# 
+# # Apply the function to the column
+# tmdb$first_genre_name <- sapply(tmdb$genres, extract_first_name)
 
 
 # 2- Genre profit over years KG
