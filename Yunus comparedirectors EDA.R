@@ -1,4 +1,4 @@
-cinema <- read.csv("moviesfinal.csv")
+cinema <- read.csv("Databases/Kaggle_movies.csv")
 head(cinema)
 is.na(cinema)
 na.omit(cinema)
@@ -6,35 +6,39 @@ na.omit(cinema)
 ## We are interested about profit of the movies so i add a profit column.
 cinema  <- cinema %>% 
    mutate(profit = gross - budget)
-#There are some NA values.
+# There are some NA values.
 
 
-##colnames(cinema)
+## colnames(cinema)
 cinema %>% 
    filter(genre == "Drama") %>% 
-   nrow()
-##Extract most profitable 5 directors for action genre.
+   nrow() 
+## Extract most profitable 5 directors for action genre.
 action_directors <- cinema %>% 
    filter(genre=="Action") %>% 
    group_by(director) %>% 
-   summarise(total_profit =sum(profit,na.rm = TRUE)) %>% 
+   summarise(total_profit = sum(profit,na.rm = TRUE),
+              mean_profit = mean(profit, na.rm = T),
+              film_count = n()) %>% 
    arrange(desc(total_profit)) %>% 
    slice_head(n=5)
 
-##Extract most profitable 5 directors for drama genre.
+## Extract most profitable 5 directors for drama genre.
 
 drama_directors <- cinema %>%
    filter(genre == "Drama") %>%
    group_by(director) %>%
-   summarise(total_profit = sum(profit, na.rm = TRUE)) %>%
+  summarize(total_profit = sum(profit,na.rm = TRUE), # Burda James Cameron sadece bir film 
+            mean_profit = mean(profit, na.rm = T), # olmasina ragmen tavan ama bence olmasin boyle
+            film_count = n()) %>%
    arrange(desc(total_profit)) %>%
-   slice_head(n = 5)
+   slice_head(n = 6)
 
 ## Combine most profitable directors and their profits in drama genre.
 ## There are stars like Clint Eastwood, Steven Spielberg, James Cameron.
 top_drama_directors <- drama_directors$director
 drama_profits <- cinema %>%
-   filter(director %in% top_drama_directors) %>%
+   filter(director %in% top_drama_directors) %>% # Drama filteri yapilmadigi icin cok fazla film cikmis
    select(director, profit) 
 drama_profits
 
@@ -42,7 +46,7 @@ drama_profits
 ## There are giants like J.J Abrams, Michael Bay and James Cameron.
 top_action_directors <- action_directors$director
 action_profits <- cinema %>%
-   filter(director %in% top_action_directors) %>%
+   filter(director %in% top_action_directors) %>% # Action filteri yapilmadigi icin cok fazla film cikmis
    select(director, profit)
 action_profits
 # Combine the profits data for the t-test
