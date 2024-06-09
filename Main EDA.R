@@ -20,12 +20,73 @@ kg <- read.csv("Databases/Kaggle_movies.csv")
 # Start the EDA process
 colnames(tmdb)
 colnames(kg)
+colSums(is.na(kg))
 
-head(tmdb[, "production_countries"])
 
-head(tmdb)
+# Let's start our analysis from the consumer side. How have the genre distributions changed
+# over time. It is probably shaped according to the viewers.
 
-# 1- Are the genre distributions different across regions?
+# kg %>% group_by(year, genre) %>% 
+#   summarize(count = n(),
+#             prop = n()) %>% 
+#   ggplot(aes(x=year, y = prop)) +
+#   geom_line()
+
+
+genre_counts <- kg %>%
+  group_by(year, genre) %>%
+  summarize(count = n(), .groups = 'drop')
+
+# Calculate the total number of movies per year
+yearly_counts <- genre_counts %>%
+  group_by(year) %>%
+  summarize(total = sum(count), .groups = 'drop')
+
+# Merge the two datasets and calculate the proportion
+genre_proportions <- genre_counts %>%
+  left_join(yearly_counts, by = "year") %>%
+  mutate(proportion = count / total) %>%
+  select(year, genre, proportion)
+
+genre_proportions %>% ggplot(aes(x=year, y = proportion, color = genre)) +
+    geom_line()
+
+# There are some genres which are very rare. Get rid of them
+per_year_movie_counts <- genre_counts %>% group_by(genre) %>% 
+  summarize(mean_count_per_year = mean(count, na.rm = T)) %>% 
+  arrange(desc(mean_count_per_year)) # Take the genres that have an average of more than 5
+
+genres_of_interest <- per_year_movie_counts %>% 
+  filter(mean_count_per_year > 5) %>% 
+  pull(genre)
+
+# Visualization for these genres
+# Line Plot
+genre_proportions %>% 
+  filter(genre %in% genres_of_interest) %>% 
+  ggplot(aes(x=year, y = proportion, color = genre)) +
+  geom_line(linewidth = 1.6) +
+  theme_light()
+
+# Stacked Area Plot
+genre_proportions %>% 
+  filter(genre %in% genres_of_interest) %>% 
+  ggplot(aes(x=year, y = proportion, fill = genre)) +
+  geom_area(linewidth = 1.6) +
+  theme_light()
+
+# Faceted Area Plot
+genre_proportions %>% 
+  filter(genre %in% genres_of_interest) %>% 
+  ggplot(aes(x=year, y = proportion, fill = genre)) +
+  geom_area(linewidth = 1.6) +
+  theme_light() +
+  facet_wrap(~genre)
+
+# It seems interesting...
+
+
+# 1.2- Are the genre distributions different across regions?
 # create a region column to group countries to based on regions
 eu_countries <- c("Austria", "Belgium", "Bulgaria", "Czech Republic", "Denmark", "Finland", "France", "Georgia", "Greece", "Germany",
                   "Hungary", "Iceland", "Ireland", "Italy", "Malta", "Netherlands", "Norway", "Poland", "Portugal",
