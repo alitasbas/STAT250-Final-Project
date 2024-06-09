@@ -148,7 +148,7 @@ genre_profits
 
 # Family seems unusually high
 kg %>% 
-  filter(genre=="Animation") %>% 
+  filter(genre=="Family") %>% 
   arrange(profit)
 
 # Our sample size is extremely small with an extreme observation
@@ -211,7 +211,8 @@ drama_directors <- kg %>%
 top_drama_directors <- drama_directors$director
 drama_profits <- kg %>%
   filter(director %in% top_drama_directors & genre == "Drama") %>%
-  select(director, profit) 
+  arrange(desc(profit)) %>% 
+  select(director, profit)
 drama_profits
 
 ## Combine most profitable directors and their profits in action genre.
@@ -219,6 +220,7 @@ drama_profits
 top_action_directors <- action_directors$director
 action_profits <- kg %>%
   filter(director %in% top_action_directors & genre == "Action") %>%
+  arrange(desc(profit)) %>% 
   select(director, profit)
 action_profits
 # Combine the profits data for the t-test
@@ -333,9 +335,49 @@ ggplot(average_gross_per_year, aes(x = year, y = average_gross / 1e6)) +
 
 
 # launch ANOVA test to compare the models
-anova_result <- anova(linear_model, polynomial_model)
 
-print(anova_result)
+######################################################
+
+# 4- Production company analysis
+
+dist <- read.csv("Databases/Movie_Distributors_1995-2019.csv")
+head(dist)
+sum(is.na(dist))
+
+
+ggplot(dist, aes(x = Year, y = Gross.Revenue, color = X.Distributor)) +
+  geom_line(aes(group = X.Distributor)) +
+  geom_point() +
+  labs(title = "Total Gross Revenue Over the Years by Distributor", 
+       x = "Year", 
+       y = "Total Gross Revenue") +
+  theme_minimal()
+
+# Plot number of movies over the years
+ggplot(dist, aes(x = Year, y = Films.Distributed, color = X.Distributor)) +
+  geom_line(aes(group = X.Distributor)) +
+  geom_point() +
+  labs(title = "Number of Movies Released Over the Years by Distributor", 
+       x = "Year", 
+       y = "Number of Movies") +
+  theme_minimal()
+
+# Plot average gross revenue per film over the years
+ggplot(dist, aes(x = Year, y = Revenue.per.Film, color = X.Distributor)) +
+  geom_line(aes(group = X.Distributor)) +
+  geom_point() +
+  labs(title = "Average Gross Revenue Per Film Over the Years by Distributor", 
+       x = "Year", 
+       y = "Average Gross Revenue Per Film") +
+  theme_minimal()
+
+ggplot(dist, aes(x = Year, y = Gross.Revenue, color = X.Distributor)) +
+  geom_line(aes(group = X.Distributor)) +
+  geom_point() +
+  labs(title = "Total Gross Revenue Over the Years by Distributor", 
+       x = "Year", 
+       y = "Total Gross Revenue") +
+  theme_minimal()
 
 
 
