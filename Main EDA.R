@@ -1,6 +1,6 @@
 # Import the necessary libraries
 
-libs <- c("ggplot2", "dplyr", "readr", "magrittr", "jsonlite")
+libs <- c("ggplot2", "dplyr", "readr", "magrittr", "jsonlite", "stringr")
 lapply(libs, require, character.only = TRUE)
 
 # Import the data sets
@@ -48,8 +48,14 @@ genre_proportions <- genre_counts %>%
   mutate(proportion = count / total) %>%
   select(year, genre, proportion)
 
-genre_proportions %>% ggplot(aes(x=year, y = proportion, color = genre)) +
-    geom_line()
+genre_proportions %>% 
+  ggplot(aes(x = year, y = proportion, color = genre)) +
+  geom_line() +
+  labs(title = "Proportion of Movie Genres Over Time", 
+       x = "Year", 
+       y = "Proportion") +
+  scale_fill_brewer(palette = "Set1")+
+  theme_minimal()
 
 # There are some genres which are very rare. Get rid of them
 per_year_movie_counts <- genre_counts %>% group_by(genre) %>% 
@@ -65,7 +71,9 @@ genres_of_interest <- per_year_movie_counts %>%
 genre_proportions %>% 
   filter(genre %in% genres_of_interest) %>% 
   ggplot(aes(x=year, y = proportion, color = genre)) +
-  geom_line(linewidth = 1.6) +
+  geom_line(linewidth = 1.2) +
+  labs(title = "Proportion of Movie Genres Over Time") +
+  scale_fill_brewer(palette = "Set1") +
   theme_light()
 
 # Stacked Area Plot
@@ -73,13 +81,15 @@ genre_proportions %>%
   filter(genre %in% genres_of_interest) %>% 
   ggplot(aes(x=year, y = proportion, fill = genre)) +
   geom_area(linewidth = 1.6) +
+  labs("Proportion of Movie Genres Over Time") +
+  scale_fill_brewer(palette = "Set1") +
   theme_light()
 
 # Faceted Area Plot
 genre_proportions %>% 
   filter(genre %in% genres_of_interest) %>% 
   ggplot(aes(x=year, y = proportion, fill = genre)) +
-  geom_area(linewidth = 1.6) +
+  geom_area() +
   theme_light() +
   facet_wrap(~genre)
 
@@ -132,10 +142,17 @@ others_grp <- kg %>%
 
 props_grp <- rbind(usa_grp, eu_grp, others_grp)
 
-genre_region_props <- ggplot(props_grp, aes(x=region, y=prop, fill=genre)) +
-  geom_bar(stat="identity", position="dodge")
+props_grp %>% ggplot(aes(x=region, y=prop, fill=genre)) +
+  geom_bar(stat="identity", position="dodge") + 
+  labs(title = "Proportion of Movie Genres by Region", 
+       x = "Region", 
+       y = "Proportion") +
+  scale_fill_brewer(palette = "Set1") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
 
-genre_region_props
 
 # Conduct a chisquare test for this contingency table
 # Take the first genre
@@ -190,8 +207,8 @@ profit_df <- kg %>%
   summarize(avg_profit_perc = mean(profit, na.rm = T))
 
 profit_time_series <- ggplot(profit_df, aes(x=year, y=avg_profit_perc, color=genre)) +
-  geom_line() +
-  geom_point()
+  geom_line(linewidth=1) +
+  scale_color_brewer(palette = "Set1")
 
 profit_time_series # Comment on our findings
 
@@ -201,8 +218,16 @@ profit_time_series # Comment on our findings
 profit_time_series_no_horror <- profit_df %>% 
   filter(genre != "Horror") %>% 
   ggplot(aes(x=year, y=avg_profit_perc, color=genre)) +
-  geom_line() +
-  geom_point()
+  geom_line(linewidth = 1) +
+  geom_point() +
+  labs(title = "Average Profit Percentage Over Time by Genre (Excluding Horror)", 
+       x = "Year", 
+       y = "Average Profit Percentage") +
+  scale_color_brewer(palette = "Set1") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
 
 profit_time_series_no_horror # Comment on our findings
 
@@ -281,7 +306,7 @@ t_test_result
 
 
 ########################################################################
-# Let's analyze the top 10 most successful movies for the past 40 years
+# 4- Let's analyze the top 10 most successful movies for the past 40 years
 
 top10blockbusters <- read.csv("Databases/blockbuster-top_ten_movies_per_year_DFE.csv")
 
@@ -364,20 +389,12 @@ ggplot(average_gross_per_year, aes(x = year, y = average_gross / 1e6)) +
 
 ######################################################
 
-# 4- Production company analysis
+# 5- Production company analysis
 
 dist <- read.csv("Databases/Movie_Distributors_1995-2019.csv")
 head(dist)
 sum(is.na(dist))
 
-
-ggplot(dist, aes(x = Year, y = Gross.Revenue, color = X.Distributor)) +
-  geom_line(aes(group = X.Distributor)) +
-  geom_point() +
-  labs(title = "Total Gross Revenue Over the Years by Distributor", 
-       x = "Year", 
-       y = "Total Gross Revenue") +
-  theme_minimal()
 
 # Plot number of movies over the years
 ggplot(dist, aes(x = Year, y = Films.Distributed, color = X.Distributor)) +
@@ -397,6 +414,7 @@ ggplot(dist, aes(x = Year, y = Revenue.per.Film, color = X.Distributor)) +
        y = "Average Gross Revenue Per Film") +
   theme_minimal()
 
+# Plot the total gross revenue over the years
 ggplot(dist, aes(x = Year, y = Gross.Revenue, color = X.Distributor)) +
   geom_line(aes(group = X.Distributor)) +
   geom_point() +
@@ -406,8 +424,53 @@ ggplot(dist, aes(x = Year, y = Gross.Revenue, color = X.Distributor)) +
   theme_minimal()
 
 
+# Create a walt disney only dataframe
+walt_disney_movies <- kg %>%
+  filter(str_detect(company,"Walt")) %>% 
+  select(name, genre, year, score, budget, gross, profit)
 
+table(walt_disney_movies$year)
 
+# group every 5 years after 1995 togethter
+walt_disney_movies %<>% 
+  mutate(gross = gross / 1000000) %>% 
+  filter(year >= 1995) %>% 
+  mutate(year_cat = cut(year, breaks=c(1994, 2000, 2005, 2010, 2015, 2020),
+                        labels = c("1995-2000", "2001-2005",
+                                   "2006-2010", "2011-2015", "2016-2020")))
 
+all_movies_year_cat_mean <- kg %>% 
+  mutate(gross = gross / 1000000) %>% 
+  filter(year >= 1995) %>% 
+  mutate(year_cat = cut(year, breaks=c(1994, 2000, 2005, 2010, 2015, 2021),
+                        labels = c("1995-2000", "2001-2005",
+                                   "2006-2010", "2011-2015", "2016-2020"))) %>% 
+  group_by(year_cat) %>% 
+  summarize(mean_gross = mean(gross, na.rm = T), .groups = "drop") %>% 
+  mutate(company = "All")
 
+walt_disney_year_cat_mean <- walt_disney_movies %>% 
+  group_by(year_cat) %>% 
+  summarize(mean_gross = mean(gross, na.rm = T), .groups = "drop") %>% 
+  mutate(company = "Walt Disney")
+  
+grouped <- rbind(walt_disney_year_cat_mean, all_movies_year_cat_mean)
+
+# grouped$year_cat <- factor(grouped$year_cat, levels = c(""))
+
+ggplot(grouped, aes(x=year_cat, y=mean_gross, fill=company)) +
+  geom_col(position = "dodge") +
+  labs(title = "Comparing Walt Disney to the market",
+       x = "Year",
+       y = "Mean Gross (in millions)")
+
+# After the agreement with Lucas Studios in 2009  Warner Bros dominated the industry
+top_50_gross <- kg %>% 
+  filter(year >= 2009) %>% 
+  arrange(desc(gross)) %>% 
+  slice_head(n=50)
+
+table(top_50_gross$company)
+
+# Pie Chart (Opsiyonel)
 
