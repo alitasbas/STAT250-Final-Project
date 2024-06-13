@@ -1,6 +1,6 @@
 # Import the necessary libraries
 
-libs <- c("ggplot2", "dplyr", "readr", "magrittr", "jsonlite", "stringr", "tidyverse")
+libs <- c("ggplot2", "dplyr", "readr", "magrittr", "jsonlite", "stringr", "tidyverse", "corrplot", "car")
 lapply(libs, require, character.only = TRUE)
 
 # Import the data sets
