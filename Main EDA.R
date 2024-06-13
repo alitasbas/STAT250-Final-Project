@@ -1,10 +1,9 @@
 # Import the necessary libraries
 
-libs <- c("ggplot2", "dplyr", "readr", "magrittr", "jsonlite", "stringr")
+libs <- c("ggplot2", "dplyr", "readr", "magrittr", "jsonlite", "stringr", "tidyverse")
 lapply(libs, require, character.only = TRUE)
 
 # Import the data sets
-tmdb <- read.csv("Databases/tmdb_5000_movies.csv")
 
 kg <- read.csv("Databases/Kaggle_movies.csv")
 
@@ -18,7 +17,6 @@ kg <- read.csv("Databases/Kaggle_movies.csv")
 # The movies data set is just beauty to the eye
 
 # Start the EDA process
-colnames(tmdb)
 colnames(kg)
 colSums(is.na(kg))
 
@@ -48,7 +46,7 @@ genre_proportions <- genre_counts %>%
   mutate(proportion = count / total) %>%
   select(year, genre, proportion)
 
-genre_proportions %>% 
+p <- genre_proportions %>% 
   ggplot(aes(x = year, y = proportion, color = genre)) +
   geom_line() +
   labs(title = "Proportion of Movie Genres Over Time", 
@@ -56,6 +54,8 @@ genre_proportions %>%
        y = "Proportion") +
   scale_fill_brewer(palette = "Set1")+
   theme_minimal()
+
+ggsave(filename = "All_Genre_Proportions_Over_Time.png", plot = p)
 
 # There are some genres which are very rare. Get rid of them
 per_year_movie_counts <- genre_counts %>% group_by(genre) %>% 
@@ -68,7 +68,7 @@ genres_of_interest <- per_year_movie_counts %>%
 
 # Visualization for these genres
 # Line Plot
-genre_proportions %>% 
+p <- genre_proportions %>% 
   filter(genre %in% genres_of_interest) %>% 
   ggplot(aes(x=year, y = proportion, color = genre)) +
   geom_line(linewidth = 1.2) +
@@ -76,8 +76,10 @@ genre_proportions %>%
   scale_fill_brewer(palette = "Set1") +
   theme_light()
 
+ggsave(filename = "Main_Genre_Proportions_Over_Time.png", plot = p)
+
 # Stacked Area Plot
-genre_proportions %>% 
+p <- genre_proportions %>% 
   filter(genre %in% genres_of_interest) %>% 
   ggplot(aes(x=year, y = proportion, fill = genre)) +
   geom_area(linewidth = 1.6) +
@@ -85,13 +87,17 @@ genre_proportions %>%
   scale_fill_brewer(palette = "Set1") +
   theme_light()
 
+ggsave(filename = "genre stacked plot.png", plot = p)
+
 # Faceted Area Plot
-genre_proportions %>% 
+p <- genre_proportions %>% 
   filter(genre %in% genres_of_interest) %>% 
   ggplot(aes(x=year, y = proportion, fill = genre)) +
   geom_area() +
   theme_light() +
   facet_wrap(~genre)
+
+ggsave(filename = "faceted genre plots.png", plot = p)
 
 # It seems interesting...
 
@@ -142,7 +148,7 @@ others_grp <- kg %>%
 
 props_grp <- rbind(usa_grp, eu_grp, others_grp)
 
-props_grp %>% ggplot(aes(x=region, y=prop, fill=genre)) +
+p <- props_grp %>% ggplot(aes(x=region, y=prop, fill=genre)) +
   geom_bar(stat="identity", position="dodge") + 
   labs(title = "Proportion of Movie Genres by Region", 
        x = "Region", 
@@ -153,12 +159,18 @@ props_grp %>% ggplot(aes(x=region, y=prop, fill=genre)) +
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   )
 
+ggsave(filename = "Genre over Regions Bar.png", plot = p)
 
 # Conduct a chisquare test for this contingency table
-# Take the first genre
-# kg <- kg %>% 
-#   mutate(main_genre = strsplit(genres, "\\|"))
-# unique(kg$genres)
+# Are their differences in culture and region regarding genre preference
+
+genre_contingency_table <- props_grp %>% 
+  select(region, genre, count) %>% 
+  pivot_wider(names_from = genre, values_from = count)
+
+chisq_result <- chisq.test(as.matrix(genre_contingency_table[, 2:6])) # Very Significant
+
+
 
 # 2- Genre profit over years KG
 summary(kg[, c("budget", "gross")])
@@ -210,6 +222,8 @@ profit_time_series <- ggplot(profit_df, aes(x=year, y=avg_profit_perc, color=gen
   geom_line(linewidth=1) +
   scale_color_brewer(palette = "Set1")
 
+ggsave(filename = "Profit Percentage of main genres.png", plot = profit_time_series)
+
 profit_time_series # Comment on our findings
 
 # The horror genre seems extremely profitable
@@ -228,6 +242,8 @@ profit_time_series_no_horror <- profit_df %>%
   theme(
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   )
+
+ggsave(filename = "Profit Percentage of main genres wihtout horror.png", plot = profit_time_series_no_horror)
 
 profit_time_series_no_horror # Comment on our findings
 
@@ -295,9 +311,8 @@ action_profit_values
 
 
 
-t_test_result <- t.test(drama_profit_values, action_profit_values)
-t_test_result
-
+t_test_result <- t.test(drama_profit_values, action_profit_values, alternative = "greater")
+t_test_result # Successfull drama movies have higher profits than action movies 
 
 
 ## p - value is 0.004181
@@ -330,8 +345,9 @@ average_gross_per_year <- top10blockbusters %>%
 
 # plotting gross(profit!) of top 10 films for every year 
 
-ggplot(average_gross_per_year, aes(x = year, y = average_gross / 1e6)) +
-  geom_line(color = "blue", size = 1) +
+# Plot the regression
+p <- ggplot(average_gross_per_year, aes(x = year, y = average_gross / 1e6)) +
+  geom_smooth(color = "blue", size = 1, method = "lm", se = F) +
   geom_point(color = "red", size = 2) +
   labs(title = "Average Gross of Top 10 Movies Worldwide by Year",
        subtitle = "Data represents the average gross of the top 10 highest-grossing movies each year",
@@ -339,9 +355,21 @@ ggplot(average_gross_per_year, aes(x = year, y = average_gross / 1e6)) +
        y = "Average Gross (in million $)") +
   theme_minimal()
 
+ggsave(filename = "Gross of BlockBusters over time correlation.png", plot = p)
 
 
-#Is there a significant trend in the average gross of the top 10 movies worldwide over the years?
+p <- ggplot(average_gross_per_year, aes(x = year, y = average_gross / 1e6)) +
+  geom_point(color = "blue", size = 1) +
+  geom_point(color = "red", size = 2) +
+  labs(title = "Average Gross of Top 10 Movies Worldwide by Year",
+       subtitle = "Data represents the average gross of the top 10 highest-grossing movies each year",
+       x = "Year",
+       y = "Average Gross (in million $)") +
+  theme_minimal()
+
+ggsave(filename = "Gross of BlockBusters over time.png", plot = p)
+
+# Is there a significant trend in the average gross of the top 10 movies worldwide over the years?
 
 
 # linear regression model
@@ -373,18 +401,6 @@ plot(linear_model)
 shapiro.test(linear_model$residuals)
 
 
-
-# Plot the polynomial regression
-ggplot(average_gross_per_year, aes(x = year, y = average_gross / 1e6)) +
-  geom_point(color = "red", size = 2) +
-  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "blue", size = 1) +
-  labs(title = "Polynomial Regression: Average Gross of Top 10 Movies Worldwide by Year",
-       subtitle = "Data represents the average gross of the top 10 highest-grossing movies each year",
-       x = "Year",
-       y = "Average Gross (in million $)") +
-  theme_minimal()
-
-
 # launch ANOVA test to compare the models
 
 ######################################################
@@ -395,9 +411,12 @@ dist <- read.csv("Databases/Movie_Distributors_1995-2019.csv")
 head(dist)
 sum(is.na(dist))
 
+dist %<>% 
+  mutate(Revenue.per.Film = Revenue.per.Film / 1000000,
+         Gross.Revenue = Gross.Revenue / 1000000)
 
 # Plot number of movies over the years
-ggplot(dist, aes(x = Year, y = Films.Distributed, color = X.Distributor)) +
+p <- ggplot(dist, aes(x = Year, y = Films.Distributed, color = X.Distributor)) +
   geom_line(aes(group = X.Distributor)) +
   geom_point() +
   labs(title = "Number of Movies Released Over the Years by Distributor", 
@@ -405,26 +424,32 @@ ggplot(dist, aes(x = Year, y = Films.Distributed, color = X.Distributor)) +
        y = "Number of Movies") +
   theme_minimal()
 
+ggsave(filename = "Total movie per distributor.png", plot = p)
+
 # Plot average gross revenue per film over the years
-ggplot(dist, aes(x = Year, y = Revenue.per.Film, color = X.Distributor)) +
+p <- ggplot(dist, aes(x = Year, y = Revenue.per.Film, color = X.Distributor)) +
   geom_line(aes(group = X.Distributor)) +
   geom_point() +
   labs(title = "Average Gross Revenue Per Film Over the Years by Distributor", 
        x = "Year", 
-       y = "Average Gross Revenue Per Film") +
+       y = "Average Gross Revenue Per Film (in Millions)") +
   theme_minimal()
 
+ggsave(filename = "Average gross per film each distributor.png", plot = p)
+
 # Plot the total gross revenue over the years
-ggplot(dist, aes(x = Year, y = Gross.Revenue, color = X.Distributor)) +
+p <- ggplot(dist, aes(x = Year, y = Gross.Revenue, color = X.Distributor)) +
   geom_line(aes(group = X.Distributor)) +
   geom_point() +
   labs(title = "Total Gross Revenue Over the Years by Distributor", 
        x = "Year", 
-       y = "Total Gross Revenue") +
+       y = "Total Gross Revenue (in Millions)") +
   theme_minimal()
 
+ggsave(filename = "Total Gross each distributor.png", plot = p)
 
-# Create a walt disney only dataframe
+
+# Create a Walt Disney only dataframe
 walt_disney_movies <- kg %>%
   filter(str_detect(company,"Walt")) %>% 
   select(name, genre, year, score, budget, gross, profit)
@@ -458,11 +483,13 @@ grouped <- rbind(walt_disney_year_cat_mean, all_movies_year_cat_mean)
 
 # grouped$year_cat <- factor(grouped$year_cat, levels = c(""))
 
-ggplot(grouped, aes(x=year_cat, y=mean_gross, fill=company)) +
+p <- ggplot(grouped, aes(x=year_cat, y=mean_gross, fill=company)) +
   geom_col(position = "dodge") +
   labs(title = "Comparing Walt Disney to the market",
        x = "Year",
        y = "Mean Gross (in millions)")
+
+ggsave(filename = "Walt vs Industry Bar graph.png", plot = p)
 
 # After the agreement with Lucas Studios in 2009  Warner Bros dominated the industry
 top_50_gross <- kg %>% 
@@ -472,5 +499,24 @@ top_50_gross <- kg %>%
 
 table(top_50_gross$company)
 
-# Pie Chart (Opsiyonel)
+# Out of the 50 top grossing movies 10 + 2 + 7 + 2 = 21 were produced by Walt Disney firms
 
+
+# Lets us test weather Walt Disney really did dominate the industry after 2009
+sort(table(kg$company), decreasing = T)[1:15]
+
+# filter for the movies after the deal with Marvel and Lucasfilms
+prime_walt_disney_gross <- kg %>% 
+  filter(year > 2009 & (company == "Lucasfilm" | str_detect(company, "Marvel") | str_detect(company, "Walt"))) %>% 
+  select(gross)
+
+wd_mean <- mean(prime_walt_disney_gross$gross)
+
+post_2009_movies_gross <- kg %>% 
+  filter(year > 2009) %>% 
+  select(gross)
+
+post_mean <- mean(post_2009_movies_gross$gross)
+
+test <- t.test(prime_walt_disney_gross$gross, mu = post_mean, alternative = "greater") # EZ reject
+# Walt Disney is the father of the industry
