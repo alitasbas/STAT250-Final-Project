@@ -5,7 +5,7 @@ lapply(libs, require, character.only = TRUE)
 
 # Import the data sets
 
-kg <- read.csv("Databases/Kaggle_movies.csv")
+mvs <- read.csv("Databases/movies.csv")
 
 # The tmdb_credits data frame contains movie_id, title, cast, and crew columns.
 # The cast and crew columns are dictionaries containing multiple entries.
@@ -17,21 +17,21 @@ kg <- read.csv("Databases/Kaggle_movies.csv")
 # The movies data set is just beauty to the eye
 
 # Start the EDA process
-colnames(kg)
-colSums(is.na(kg))
+colnames(mvs)
+colSums(is.na(mvs))
 
 
 # Let's start our analysis from the consumer side. How have the genre distributions changed
 # over time. It is probably shaped according to the viewers.
 
-# kg %>% group_by(year, genre) %>% 
+# mvs %>% group_by(year, genre) %>% 
 #   summarize(count = n(),
 #             prop = n()) %>% 
 #   ggplot(aes(x=year, y = prop)) +
 #   geom_line()
 
 
-genre_counts <- kg %>%
+genre_counts <- mvs %>%
   group_by(year, genre) %>%
   summarize(count = n(), .groups = 'drop')
 
@@ -112,9 +112,9 @@ eu_countries <- c("Austria", "Belgium", "Bulgaria", "Czech Republic", "Denmark",
 others <- c("Afghanistan", "Australia", "Bahamas", "Cambodia", "Cameroon", "Canada", "Chile", "China", "Colombia",
             "Dominican Republic", "Egypt", "Hong Kong", "India", "Indonesia", "Iran", "Israel", "Japan", "Kenya")
 
-kg <- kg[kg$country != "", ]
+mvs <- mvs[mvs$country != "", ]
 
-kg <- kg %>% mutate(
+mvs <- mvs %>% mutate(
   region = case_when(
     country %in% eu_countries ~ "Europe",
     country == "United States" ~ "USA",
@@ -122,28 +122,28 @@ kg <- kg %>% mutate(
   )
 )
 
-table(kg$region)
+table(mvs$region)
 
 # To construct a side-by-side bar chart, extract the distributions 
 # Filter only Action, Drama, Comedy, Horror, Animation
 acdh_genres <- c("Action", "Drama", "Comedy", "Horror", "Animation")
 
-usa_grp <- kg %>% 
+usa_grp <- mvs %>% 
   filter(genre %in% acdh_genres & region == "USA") %>% 
   group_by(region, genre) %>% 
-  summarize(prop = n() / table(kg$region)[3],
+  summarize(prop = n() / table(mvs$region)[3],
             count = n())
 
-eu_grp <- kg %>% 
+eu_grp <- mvs %>% 
   filter(genre %in% acdh_genres & region == "Europe") %>% 
   group_by(region, genre) %>% 
-  summarize(prop = n() / table(kg$region)[1],
+  summarize(prop = n() / table(mvs$region)[1],
             count = n())
 
-others_grp <- kg %>% 
+others_grp <- mvs %>% 
   filter(genre %in% acdh_genres & region == "Others") %>% 
   group_by(region, genre) %>% 
-  summarize(prop = n() / table(kg$region)[2],
+  summarize(prop = n() / table(mvs$region)[2],
             count = n())
 
 props_grp <- rbind(usa_grp, eu_grp, others_grp)
@@ -173,28 +173,28 @@ chisq_result <- chisq.test(as.matrix(genre_contingency_table[, 2:6])) # Very Sig
 
 
 # 2- Genre profit over years KG
-summary(kg[, c("budget", "gross")])
-nrow(kg[kg$budget==0, ])
-nrow(kg[kg$gross==0, ])
+summary(mvs[, c("budget", "gross")])
+nrow(mvs[mvs$budget==0, ])
+nrow(mvs[mvs$gross==0, ])
 # As movies can't be produced for free, remove all observations with budget=0.
 # Additionally, some budget entries are in millions. Take budget greater than 10000.
-kg %<>% 
+mvs %<>% 
   filter(budget > 10000)
 
 # There are some flops and wrong values for revenues. Get rid of them, too.
-kg %<>% 
+mvs %<>% 
   filter(gross > 10000)
 
-kg %<>%
+mvs %<>%
   mutate(profit = (gross - budget) / budget * 100)
 # There are some outliers. We decided to increase outlier tolerance as they are true
 # but extreme values. Remove the 3 highest profits.
-summary(kg$profit)
+summary(mvs$profit)
 
-kg %<>%
-  filter(profit < sort(kg$profit, decreasing = T)[3])
+mvs %<>%
+  filter(profit < sort(mvs$profit, decreasing = T)[3])
 
-genre_profits <- kg %>% 
+genre_profits <- mvs %>% 
   group_by(genre) %>% 
   summarize(avg_profit = mean(profit, na.rm =T)) %>% 
   arrange(desc(avg_profit)) # Take top four and plot on a time series
@@ -202,7 +202,7 @@ genre_profits <- kg %>%
 genre_profits
 
 # Family seems unusually high
-kg %>% 
+mvs %>% 
   filter(genre=="Family") %>% 
   arrange(profit)
 
@@ -213,7 +213,7 @@ kg %>%
 top_genre_list <- c("Horror", "Drama", "Comedy", "Animation")
 
 # Construct a time-series plot
-profit_df <- kg %>% 
+profit_df <- mvs %>% 
   filter(genre %in% top_genre_list) %>% 
   group_by(year, genre) %>% 
   summarize(avg_profit_perc = mean(profit, na.rm = T))
@@ -251,13 +251,13 @@ profit_time_series_no_horror # Comment on our findings
 #####################################################################
 # 3- Compare most successful directors
 
-sum(is.na(kg))
+sum(is.na(mvs))
 ## colnames(cinema)
-kg %>% 
+mvs %>% 
   filter(genre == "Drama") %>% 
   nrow()
 ## Extract most profitable 15 directors for action genre.
-action_directors <- kg %>% 
+action_directors <- mvs %>% 
   filter(genre=="Action") %>% 
   group_by(director) %>% 
   summarise(total_profit =sum(profit,na.rm = TRUE)) %>% 
@@ -266,7 +266,7 @@ action_directors <- kg %>%
 
 ## Extract most profitable 15 directors for drama genre.
 
-drama_directors <- kg %>%
+drama_directors <- mvs %>%
   filter(genre == "Drama") %>%
   group_by(director) %>%
   summarise(total_profit = sum(profit, na.rm = TRUE)) %>%
@@ -276,7 +276,7 @@ drama_directors <- kg %>%
 ## Combine most profitable directors and their profits in drama genre.
 ## There are giants like Clint Eastwood, Steven Spielberg, James Cameron.
 top_drama_directors <- drama_directors$director
-drama_profits <- kg %>%
+drama_profits <- mvs %>%
   filter(director %in% top_drama_directors & genre == "Drama") %>%
   arrange(desc(profit)) %>% 
   select(director, profit)
@@ -285,7 +285,7 @@ drama_profits
 ## Combine most profitable directors and their profits in action genre.
 ## There are giants like J.J Abrams, Michael Bay and James Cameron.
 top_action_directors <- action_directors$director
-action_profits <- kg %>%
+action_profits <- mvs %>%
   filter(director %in% top_action_directors & genre == "Action") %>%
   arrange(desc(profit)) %>% 
   select(director, profit)
@@ -450,7 +450,7 @@ ggsave(filename = "Total Gross each distributor.png", plot = p)
 
 
 # Create a Walt Disney only dataframe
-walt_disney_movies <- kg %>%
+walt_disney_movies <- mvs %>%
   filter(str_detect(company,"Walt")) %>% 
   select(name, genre, year, score, budget, gross, profit)
 
@@ -464,7 +464,7 @@ walt_disney_movies %<>%
                         labels = c("1995-2000", "2001-2005",
                                    "2006-2010", "2011-2015", "2016-2020")))
 
-all_movies_year_cat_mean <- kg %>% 
+all_movies_year_cat_mean <- mvs %>% 
   mutate(gross = gross / 1000000) %>% 
   filter(year >= 1995) %>% 
   mutate(year_cat = cut(year, breaks=c(1994, 2000, 2005, 2010, 2015, 2021),
@@ -492,7 +492,7 @@ p <- ggplot(grouped, aes(x=year_cat, y=mean_gross, fill=company)) +
 ggsave(filename = "Walt vs Industry Bar graph.png", plot = p)
 
 # After the agreement with Lucas Studios in 2009  Warner Bros dominated the industry
-top_50_gross <- kg %>% 
+top_50_gross <- mvs %>% 
   filter(year >= 2009) %>% 
   arrange(desc(gross)) %>% 
   slice_head(n=50)
@@ -503,16 +503,16 @@ table(top_50_gross$company)
 
 
 # Lets us test weather Walt Disney really did dominate the industry after 2009
-sort(table(kg$company), decreasing = T)[1:15]
+sort(table(mvs$company), decreasing = T)[1:15]
 
 # filter for the movies after the deal with Marvel and Lucasfilms
-prime_walt_disney_gross <- kg %>% 
+prime_walt_disney_gross <- mvs %>% 
   filter(year > 2009 & (company == "Lucasfilm" | str_detect(company, "Marvel") | str_detect(company, "Walt"))) %>% 
   select(gross)
 
 wd_mean <- mean(prime_walt_disney_gross$gross)
 
-post_2009_movies_gross <- kg %>% 
+post_2009_movies_gross <- mvs %>% 
   filter(year > 2009) %>% 
   select(gross)
 
